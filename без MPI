@@ -1,0 +1,134 @@
+#include <iostream>
+#include <cmath>
+#include <stdbool.h>
+#include <mpi.h>
+
+using namespace std;
+
+//Au = b//
+void mulOnVector(float* A, float* b,int n ,float* u ){
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j ++){
+            b[i] += A[i*n + j]*u[j];
+        }
+    }
+}
+
+void createMatrix(float* A, float* b, int n, float* u){
+
+    for(int i = 0; i < n; i ++){
+        for(int j = 0; j < n; j++){
+            if(i == j){
+                A[i*n + j] = 2.0;
+            } else {
+                A[i*n + j] = 1.0;
+            }
+        }
+    }
+
+    for(int i = 0; i < n; i ++){
+        for(int j = 0; j < n; j++){
+           printf("%f  ",  A[i*n + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+
+    for(int i = 0; i < n; i ++){
+        u[i] = (float)sin(2*M_PI*i/n);
+        //printf("u = %f", u[i]);
+    }
+
+    mulOnVector(A, b, n, u);
+
+    printf("vector b : \n");
+    for(int i = 0; i < n; i++){
+        printf("%f ", b[i]);
+    }
+    printf("\n");
+
+}
+
+// Ax^n - b //
+float* mulAndSubtr(float* A, float* x, float* b, int n){
+    float* res = (float*)malloc(n*sizeof(float));
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j ++){
+            res[i] += A[i*n + j]*x[j];
+        }
+    }
+
+    for(int i = 0; i < n; i++){
+        res[i] = res[i] - b[i];
+    }
+
+    return res;
+}
+
+//x^(n+1) = x(n) -T(Ax(n) - b)
+void calculate(float T,float* x,float* A, float* b, int n){
+    float* res = mulAndSubtr(A, x, b, n);
+
+ for(int i = 0; i < n; i ++){
+     x[i] = x[i] - T*res[i];
+ }
+
+}
+
+float Module(float* vector, int n){
+    float summ = 0;
+    for(int i = 0; i < n; i++){
+        summ += vector[i]*vector[i];
+    }
+    float length = sqrt(summ);
+    return length;
+}
+
+bool checkE(float*x ,float* A, float* b, float E, int n){
+    float* res = mulAndSubtr(A ,x ,b ,n );
+    float v1length = Module(res, n);
+    float v2length = Module(b, n);
+    float e = v1length / v2length;
+    //printf("%f\n", e);
+    if(e < E){
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
+
+
+int main() {
+    int n = 5;
+
+    float* A = (float*)malloc(n*n*sizeof(float));
+    float* b = (float*)malloc(n*sizeof(float));
+    float* u = (float*)malloc(n*sizeof(float));
+    float* x = (float*)malloc(n*sizeof(float));
+    for(int i = 0; i < n; i++){
+        x[i] = 1;
+    }
+
+    bool flag = true;
+    float E = 0.00001;
+
+    int i = 0;
+
+    float T = 0.01;
+
+    createMatrix(A ,b ,n ,u);
+
+    while(flag) {
+        i++;
+        calculate(T, x, A, b, n);;
+        flag = checkE(x, A, b, E, n);
+    }
+        printf("vector x: \n");
+        for(int i = 0; i < n; i++){
+        printf("%f ", x[i]);
+    }
+
+    return 0;
+}
